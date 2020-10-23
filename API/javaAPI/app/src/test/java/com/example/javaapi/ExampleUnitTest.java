@@ -39,7 +39,7 @@ public class ExampleUnitTest {
     @Test
     public void getAssetById_isCorrect() throws JSONException{
         flowgateClient fc = new flowgateClient("10.11.16.36", "admin", "Ar_InDataCenter_450");
-        String id = "634523487608";
+        String id = "8031cd81572f4f60ac4b9af45d930b11";
         JSONObject js = fc.getAssetById(id);
         System.out.println("TOKEN: " + js.getString("id"));
     }

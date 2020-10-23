@@ -188,7 +188,6 @@ public class flowgateClient {
         return getAssetInfo("name", this.assetString + "name/" + name, name);
     }
 
-    // Cannot find what is id now...
     public JSONObject getAssetById(String id){
         return getAssetInfo("id", this.assetString + id, id);
     }
