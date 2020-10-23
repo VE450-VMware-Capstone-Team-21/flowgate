@@ -132,7 +132,14 @@ public class flowgateClient {
         }
     }
 
-    public JSONObject getAssetByName(String name){
+    /*
+     * `type` is to identify which API is used; `identifier` is to identify the device
+     * REQUIRES:
+     * "this.host + urlPart" should be a valid address in the backend
+     * EFFECTS:
+     * return required asset info
+     */
+    private JSONObject getAssetInfo(String type, String urlPart, String identifier){
         try{
             /*
              * Get token
@@ -146,35 +153,43 @@ public class flowgateClient {
             /*
              * Set up connection
              */
-            String assetNameString = "/apiservice/v1/assets/name/";
-            String assetNameUrlString = "https://" + this.host + assetNameString + name + "/";
-            URL assetUrl = new URL(assetNameUrlString);
-            HttpURLConnection assetHttpCon = (HttpURLConnection)(assetUrl.openConnection());
-            assetHttpCon.setRequestMethod("GET");
-            assetHttpCon.setDoOutput(true);
-            assetHttpCon.setRequestProperty("Content-Type", "application/json");
-            assetHttpCon.setRequestProperty("Authorization", "Bearer " + curToken);
-            assetHttpCon.setRequestProperty("Accept", "application/json");
+            String urlString = "https://" + this.host + urlPart + "/";
+            URL url = new URL(urlString);
+            HttpURLConnection httpCon = (HttpURLConnection)(url.openConnection());
+            httpCon.setRequestMethod("GET");
+            httpCon.setDoOutput(true);
+            httpCon.setRequestProperty("Content-Type", "application/json");
+            httpCon.setRequestProperty("Authorization", "Bearer " + curToken);
+            httpCon.setRequestProperty("Accept", "application/json");
 
-            Log.i("flowgateClient", "getAssetByName: query device: " + name);
-            assetHttpCon.connect();
-            int responseStatus = assetHttpCon.getResponseCode();
+            Log.i("flowgateClient", "getAssetBy " + type + ": query device: " + identifier);
+            httpCon.connect();
+            int responseStatus = httpCon.getResponseCode();
             if(responseStatus == 200){
-                StringBuilder response = readResponse(assetHttpCon);
+                StringBuilder response = readResponse(httpCon);
                 return new JSONObject(response.toString());
             }
             else{
-                Log.w("flowgateClient", "getAssetByName: response code not 200");
+                Log.w("flowgateClient", "getAssetInfo: response code not 200");
                 return null;
             }
         }
         catch (IOException e){
-            Log.w("flowgateClient", "getAssetByName: IO exception when asking for token");
+            Log.w("flowgateClient", "getAssetInfo: IO exception when asking for token");
             return null;
         }
         catch (JSONException e){
-            Log.w("flowgateClient", "getAssetByName: JSON exception when asking for token");
+            Log.w("flowgateClient", "getAssetInfo: JSON exception when asking for token");
             return null;
         }
+    }
+
+    public JSONObject getAssetByName(String name){
+        return getAssetInfo("name", this.assetString + "name/" + name, name);
+    }
+
+    // Cannot find what is id now...
+    public JSONObject getAssetById(String id){
+        return getAssetInfo("id", this.assetString + id, id);
     }
 }
