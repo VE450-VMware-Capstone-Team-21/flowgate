@@ -2,6 +2,7 @@ package com.example.javaapi;
 
 import android.util.Log;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -15,7 +16,7 @@ import static org.junit.Assert.*;
  */
 public class ExampleUnitTest {
     @Test
-    public void getAuthToken_isCorrect() throws IOException, JSONException {
+    public void getAuthToken_isCorrect() {
         /*
            In order to test locally with JSONObject:
            `testOptions`, `testCompile 'org.json:json:20200518' is added to build.gradle(:app)`
@@ -26,4 +27,13 @@ public class ExampleUnitTest {
         System.out.println("TOKEN: " + s);
         // don't know where to find the output.. could only test by setting break points
     }
+    
+    @Test
+    public void getAssetByName_isCorrect() throws JSONException{
+        flowgateClient fc = new flowgateClient("10.11.16.36", "admin", "Ar_InDataCenter_450");
+        String name = "testServer";
+        JSONObject js = fc.getAssetByName(name);
+        System.out.println("TOKEN: " + js.getString("id"));
+    }
+
 }
