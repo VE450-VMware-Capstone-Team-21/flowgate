@@ -52,73 +52,129 @@ public class flowgateClient {
             }
     };
 
-    // @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public String getAuthToken() throws IOException, JSONException {
-        /*
-         * Existed token not expired
-         */
-        if(this.token != null){
-            int expiresTime = Integer.parseInt(token.getString("expires_in"));
-            long currentTime = System.currentTimeMillis(); // unix time in milliseconds
-            if(expiresTime - currentTime > 600000){
-                return token.getString("access_token");
-            }
+    // read `response` from `connection` after 200 OK
+    private StringBuilder readResponse(HttpURLConnection connection) throws IOException {
+        InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+        BufferedReader br = new BufferedReader(isr);
+        StringBuilder response = new StringBuilder();
+        String responseLine;
+        while((responseLine = br.readLine()) != null){
+            response.append(responseLine.trim());
         }
+        return response;
+    }
 
-        /*
-         * Acquire new token
-         */
-        // install all-trusting trust manager TODO because our server has no certificate
+    // @RequiresApi(api = Build.VERSION_CODES.KITKAT) throws IOException, JSONException
+    public String getAuthToken() {
         try{
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-        }
-        catch (Exception e){}
-        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-            @Override
-            public boolean verify(String hostname, SSLSession sslSession) {
-                return true;
+            /*
+             * Existed token not expired
+             */
+            if(this.token != null){
+                int expiresTime = Integer.parseInt(token.getString("expires_in"));
+                long currentTime = System.currentTimeMillis(); // unix time in milliseconds
+                if(expiresTime - currentTime > 600000){
+                    return token.getString("access_token");
+                }
             }
-        });
 
-        // set up connection
-        String authString = "/apiservice/v1/auth/token";
-        URL tokenUrl = new URL("https://" + host + authString);
-        HttpURLConnection tokenHttpCon = (HttpURLConnection)(tokenUrl.openConnection());
-        tokenHttpCon.setRequestMethod("POST");
-        tokenHttpCon.setDoOutput(true);
-        tokenHttpCon.setRequestProperty("Content-Type", "application/json");
-        tokenHttpCon.setRequestProperty("Accept", "application/json");
+            /*
+             * Acquire new token
+             */
+            // install all-trusting trust manager TODO because our server has no certificate
+            try{
+                SSLContext sc = SSLContext.getInstance("SSL");
+                sc.init(null, trustAllCerts, new java.security.SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            }
+            catch (Exception e){}
+            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession sslSession) {
+                    return true;
+                }
+            });
 
-        // send authentication info
-        String jsonUser = "{\"userName\": \""+(this.userName)+"\", "
-                + "\"password\": \""+this.password+"\"}";
-        byte[] inputUser = jsonUser.getBytes(); // StandardCharsets.UTF_8
-        try{
+            // set up connection
+            String authString = "/apiservice/v1/auth/token";
+            URL tokenUrl = new URL("https://" + host + authString);
+            HttpURLConnection tokenHttpCon = (HttpURLConnection)(tokenUrl.openConnection());
+            tokenHttpCon.setRequestMethod("POST");
+            tokenHttpCon.setDoOutput(true);
+            tokenHttpCon.setRequestProperty("Content-Type", "application/json");
+            tokenHttpCon.setRequestProperty("Accept", "application/json");
+
+            // send authentication info
+            String jsonUser = "{\"userName\": \""+(this.userName)+"\", "
+                    + "\"password\": \""+this.password+"\"}";
+            byte[] inputUser = jsonUser.getBytes(); // StandardCharsets.UTF_8
             OutputStream os = tokenHttpCon.getOutputStream();
             os.write(inputUser, 0, inputUser.length);
-        }
-        catch (Exception e){
-            Log.w("flowgateClient", "Fail to connect when asking for token");
+
+            // receive and set this.token and return string if success
+            tokenHttpCon.connect();
+            int responseStatus = tokenHttpCon.getResponseCode();
+            if(responseStatus == 200){
+                StringBuilder response = this.readResponse(tokenHttpCon);
+                this.token = new JSONObject(response.toString());
+                return token.getString("access_token");
+            }
+
             return null;
         }
-
-        // receive and set this.token and return string if success
-        tokenHttpCon.connect();
-        int responseStatus = tokenHttpCon.getResponseCode();
-        if(responseStatus == 200){
-            InputStreamReader isr = new InputStreamReader(tokenHttpCon.getInputStream());
-            BufferedReader br = new BufferedReader(isr);
-            StringBuilder response = new StringBuilder();
-            String responseLine;
-            while((responseLine = br.readLine()) != null){
-                response.append(responseLine.trim());
-            }
-            this.token = new JSONObject(response.toString());
-            return token.getString("access_token");
+        catch (IOException e){
+            Log.w("flowgateClient", "getAuthToken: IO exception when asking for token");
+            return null;
         }
+        catch (JSONException e){
+            Log.w("flowgateClient", "getAuthToken: JSON exception when asking for token");
+            return null;
+        }
+    }
 
-        return null;
+    public JSONObject getAssetByName(String name){
+        try{
+            /*
+             * Get token
+             */
+            String curToken = getAuthToken();
+            if(curToken == null || curToken.isEmpty()){
+                Log.w("flowgateClient", "getAssetByName: no available token");
+                return null;
+            }
+
+            /*
+             * Set up connection
+             */
+            String assetNameString = "/apiservice/v1/assets/name/";
+            String assetNameUrlString = "https://" + this.host + assetNameString + name + "/";
+            URL assetUrl = new URL(assetNameUrlString);
+            HttpURLConnection assetHttpCon = (HttpURLConnection)(assetUrl.openConnection());
+            assetHttpCon.setRequestMethod("GET");
+            assetHttpCon.setDoOutput(true);
+            assetHttpCon.setRequestProperty("Content-Type", "application/json");
+            assetHttpCon.setRequestProperty("Authorization", "Bearer " + curToken);
+            assetHttpCon.setRequestProperty("Accept", "application/json");
+
+            Log.i("flowgateClient", "getAssetByName: query device: " + name);
+            assetHttpCon.connect();
+            int responseStatus = assetHttpCon.getResponseCode();
+            if(responseStatus == 200){
+                StringBuilder response = readResponse(assetHttpCon);
+                return new JSONObject(response.toString());
+            }
+            else{
+                Log.w("flowgateClient", "getAssetByName: response code not 200");
+                return null;
+            }
+        }
+        catch (IOException e){
+            Log.w("flowgateClient", "getAssetByName: IO exception when asking for token");
+            return null;
+        }
+        catch (JSONException e){
+            Log.w("flowgateClient", "getAssetByName: JSON exception when asking for token");
+            return null;
+        }
     }
 }
