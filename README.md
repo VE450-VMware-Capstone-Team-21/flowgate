@@ -5,6 +5,7 @@ VM name: Flowgate5
 
 ## Flowagate access
 - Address: https://10.11.16.39/ 
+    - Access not using vpn: https://202.121.180.32/
     - May change after reboot
     - Use UMJI vpn to connect to Flowgate server
   
