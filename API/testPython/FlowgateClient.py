@@ -69,7 +69,7 @@ class FlowgateClient():
             return response
         device_data = {'id': str(device_id) + "_1603217266200",
                        'assetID': str(device_id), 'values': []}
-        value_unit = {'extraidentifier': None, 'key': 'FrontTemperature', 'value': '33',
+        value_unit = {'extraidentifier': None, 'key': 'Temperature', 'value': '33',
                       'valueNum': 0.0, 'unit': 'Celsius', 'time': 1603217266200}
         device_data['values'].append(value_unit)
         # print(device_data)
@@ -85,10 +85,10 @@ class FlowgateClient():
         data = self.getAssetByName(deviceName)
         device_id = data['id']
 
-        device_data = {'assetID': device_id, 'time': 1603217266200, 'values': [],
-                       'id': str(device_id) + "_1603217266200"}
-        value_unit = {'extraidentifier': None, 'key': 'FrontTemperature', 'value': '22',
-                      'valueNum': 0.0, 'unit': 'Celsius', 'time': 1603217266200}
+        device_data = {'assetID': device_id, 'time': 1603217266201, 'values': [],
+                       'id': str(device_id) + "_1603217266201"}
+        value_unit = {'extraidentifier': None, 'key': 'Temperature', 'value': '22',
+                      'valueNum': 0.0, 'unit': 'Celsius', 'time': 1603217266201}
         device_data['values'].append(value_unit)
 
         api_url = self.host + "/apiservice/v1/assets/" + device_id + "/sensordata"
